@@ -11,29 +11,23 @@ makeGraphicsWindow(1200,600)
 ##########################  To Do  ################################
 ###################################################################
 
-# (1-5) Multiline, Stalemate, Quitting Midgame, Instructions, "You Have Been Kicked"
+# (1-5) Quitting Midgame, Instructions, "You Have Been Kicked", Assassin Class, Better Scrolling
 
 ########### Urgent
 
 ########### Priority 1
 
-# # # Multiple line msgs
-
-# # # Program Stalemate
-
-########### Priority 2
-
-# # # Naming before connected
-
-# # # "You have been kicked"
-
-# # # Quitting halfway through
-
-# # # implement drawUniform()
+# # # Quitting midgame
 
 # # # Instructions
 
-# # # Improve class descriptions
+########### Priority 2
+
+# # # Better scrolling
+
+# # # "You have been kicked"
+
+# # # implement drawUniform()
 
 # # # Test utf8
 
@@ -150,6 +144,9 @@ def new_message(connection, message):
             w.messages = []
             w.offset=0
             w.offset_2=0
+        elif message=="*stalemate":
+            w.phase="End"
+            newMessage("The game ends in stalemate.")
         elif message=="*end":
             w.phase="End"
             winner = False
@@ -263,11 +260,11 @@ def connect():
         w.connection.on_receive(new_message)
 
 ###################################################################
-######################  Mouse/Keypress  ###########################
+########################  Mousepress  #############################
 ###################################################################
 
 def mousePress(w,x,y,b):
-    ################### Settings  ####################
+    ################### Settings  #######################
     if b=="left" and w.started and inbox(1180,580,x,y,20,20):
         if w.setshow:
             w.setshow=False
@@ -280,8 +277,14 @@ def mousePress(w,x,y,b):
                 w.view=w.settings[s]
                 w.setshow=False
                 if s=="Stalemate Request":
-                    newMessage("This feature has not yet been implemented.")
+                    if not w.requested:
+                        newMessage("You requested a stalemate.")
+                        w.requested=True
+                        w.connection.send("#stalemate(\""+w.name+"\")")
+                    else:
+                        newMessage("You already requested a stalemate.")
             add-=18
+    ################# Up/Down Arrows  ###################
     if w.view=="Classes":
         if b=="left" and w.started:
             if inbox(400,585,x,y,40,10):
@@ -290,7 +293,7 @@ def mousePress(w,x,y,b):
                 w.offset_2-=250
     elif w.view=="Game":
         ################# Up/Down Arrows  ###################
-        if b=="left" and w.started and len(w.messages)>33:
+        if b=="left" and w.started and w.lines>33:
             if inbox(880,585,x,y,40,10):
                 w.offset+=250
             elif inbox(1080,585,x,y,40,10):
@@ -300,7 +303,7 @@ def mousePress(w,x,y,b):
             ypos=100
             xpos=500
             for r in w.roles:
-                if inbox(xpos,ypos,x,y,250,20):
+                if inbox(xpos,ypos,x,y,180,20):
                     for role in w.allroles:
                         if role.name==r:
                             w.role=role
@@ -391,6 +394,10 @@ def mousePress(w,x,y,b):
                     w.passed=True
                 add+=35
 
+###################################################################
+##########################  Keypress  #############################
+###################################################################
+
 def keyPress(w,k):
     if not w.chosenPlayer==None:
         if k==42:
@@ -399,7 +406,7 @@ def keyPress(w,k):
             w.connection.send("@"+w.chosenPlayer+"<"+w.name+">"+inputmod.box["string"])
             w.chosenPlayer=None
             inputmod.box["string"]=""
-        elif len(inputmod.box["string"])<25:
+        elif len(inputmod.box["string"])<80:
             inputmod.write(w,k)
     elif w.waiting and not w.approval and w.view=="Game":
         if k==42 and len(inputmod.box["string"])>0:
@@ -428,20 +435,6 @@ onAnyKeyPress(keyPress)
 ##################  Role Specific Functions  ######################
 ###################################################################
 
-def detect():
-    pass
-##    selected=False
-##    player=""
-##    char=None
-##    while not selected:
-##        player=raw_input("Select a player: ")
-##        for p in getWorld().players:
-##            if p.name==player:
-##                selected=True
-##                char=p
-##                break
-##    print player+" attacked "+char.target+"."
-
 def inaccuratePower():
     return random.randint(-2,4)
 
@@ -468,7 +461,7 @@ def start(w):
     w.recent = False
     w.taken = False
     w.chosenPlayer = None
-    w.stalemates = 0
+    w.requested = False
     
     w.settings = {"Stalemate Request":"Game",
                   "Classes":"Classes",
@@ -476,7 +469,7 @@ def start(w):
                   "Game":"Game"}
     w.setshow = False
     
-    w.name = "Player"
+    w.name = "Unnamed Player"
     w.player = None
     w.role = None
     w.roles = []
@@ -491,7 +484,6 @@ def start(w):
                   Role("Glass Cannon",reveal=True,power=lambda :3,health=5,desc="OPEN; 3 power; 5 health."),
                   Role("Journalist",desc="CLOSED; you know everyone's class."),
                   Role("Deadshot",reveal=True,power=shotPower,desc="OPEN; 1 to 4 power; has to attack the same player until the player is dead."),
- #                 Role("Leech"),
                   Role("Healer",desc="CLOSED; any damage you deal to yourself gains you life instead."),
                   Role("Survivor",desc="CLOSED; survives two turns after going to 2 life"),
                   Role("Lag",power=lambda :2,desc="CLOSED; 2 power; each attack's damage is taken the turn after declared."),
@@ -507,6 +499,7 @@ def start(w):
     w.messages = []
     w.offset=0
     w.offset_2=0
+    w.lines=0
 
 ###################################################################
 ##########################  Update  ###############################
@@ -563,9 +556,23 @@ def draw(w):
             if True:
                 add=w.offset
                 for message in w.messages:
-                    drawString(" > "+message,800,5+add,size=15,font="Times")
+                    message=" > "+message
+                    words = message.split(" ")
+                    string=""
+                    for word in words:
+                        temp=string+word+" "
+                        if len(temp)>45:
+                            drawString(string,805,5+add,size=15,font="Anonymous Pro")
+                            add+=16
+                            string=word+" "
+                        else:
+                            string=temp
+                    if len(string)>0:
+                        drawString(string,805,5+add,size=15,font="Anonymous Pro")
                     add+=16
-            if len(w.messages)>33:
+                if add/16>w.lines:
+                    w.lines=add/16
+            if w.lines>33:
                 fillRectangle(800,580,400,20,color="white")
                 drawRectangle(800,580,400,20,thickness=2)
                 fillPolygon([(880,595),(920,595),(900,585)],color="red")
@@ -640,9 +647,8 @@ def draw(w):
                     drawString("all",650,225+add,12,font="Times")
                 else:
                     drawString(w.chosenPlayer,610,182,size=15,font="Times")
-                    drawString("Text (max 24 chars):",610,200,size=15,font="Times")
-                    inputmod.drawinputbox(610,220,15)
-                    drawRectangle(610,220,180,17)
+                    inputmod.drawWidthBox(612,220,21,15)
+                    drawRectangle(610,220,180,68)
             ################# Drawing Players ##################
             if len(w.players)>0:
                 num=0

@@ -54,20 +54,6 @@ class Role:
 ########################  Functions  ##############################
 ###################################################################
 
-##def new_client_function(connection):
-##    w=getWorld()
-##    if connection.get_remote_name()=="localhost":
-##        connection.on_receive(new_message)
-##    elif not w.noMoreCalls:
-##        print "got a new connection from", connection.get_remote_name()
-##        w.activeplayers+=1
-##        if w.activeplayers==w.numplayers:
-##            w.noMoreCalls=True
-##        connection.on_receive(new_message)
-##        w.connections.append(Connection(connection))
-##    else:
-##        connection.close()
-
 def new_client_function(connection):
     w=getWorld()
     w.numplayers+=1
@@ -104,7 +90,7 @@ def new_message(connection, message):
         name = message[1:].partition("$")[0]
         role = message[1:].partition("$")[2]
         for p in w.players:
-            if p.name==name:
+            if p.name==name and p.role==None:
                 for r in w.allroles:
                     if role==r.name:
                         p.role=r
@@ -120,13 +106,6 @@ def new_message(connection, message):
         w.connectedPlayers.append(message[1:])
     else:
         print message
-
-##def connect():
-##    w=getWorld()
-##    w.connection = network.connect('localhost')
-##    if not w.connection==None:
-##        print w.connection
-##        w.connected=True
 
 def check():
     for con in getWorld().connections:
@@ -145,20 +124,6 @@ def confirm():
 
 def keyPress(w,k):
     pass
-##    if w.numCheck:
-##        if k==42:
-##            inputmod.box["string"]=inputmod.box["string"][:-1]
-##        elif k==40:
-##            w.numplayers=int(inputmod.box["string"])
-###            if w.numplayers<=1:
-###                print "The game has a minimum of 2 players."
-###            else:
-##            w.numCheck=False
-##            inputmod.write(w,k)
-##            network.listen(new_client_function)
-##            #connect()
-##        elif k>=30 and k<=39 and not isShift() and len(inputmod.box["string"])<2:
-##            inputmod.write(w,k)
 
 def isShift():
     if isKeyPressed("left shift") or isKeyPressed("right shift"):
@@ -290,8 +255,16 @@ def target(target,damage,player):
             p.target=target
             p.tempPower=damage
         if p.role.name=="Freespoken" and p.name==player:
-            for con in w.connections:
-                con.c.send("#newMessage(player+\" attacked \"+target)")
+            for con in getWorld().connections:
+                con.c.send("#newMessage(\""+player+" attacked "+target+"\")")
+
+def stalemate(name):
+    getWorld().stalemates+=1
+    for con in getWorld().connections:
+        con.c.send("#newMessage(\""+name+" requested a stalemate.\")")
+        if getWorld().stalemates==getWorld().activeplayers:
+            con.c.send("*stalemate")
+            getWorld().phase="End"
 
 onMousePress(mousePress)
 onAnyKeyPress(keyPress)
@@ -299,9 +272,6 @@ onAnyKeyPress(keyPress)
 ###################################################################
 ##################  Role Specific Functions  ######################
 ###################################################################
-
-def detect():
-    pass
 
 def inaccuratePower():
     pass
@@ -344,14 +314,13 @@ def start(w):
     w.connection = None
     w.connections = []
     w.gameStarted = False
+    w.stalemates = 0
     
     w.players = []
     w.round = 0
     w.phase = "Roles"
-    w.allroles = [####Standard####
-                  Role("Faithful",reveal=True),
+    w.allroles = [Role("Faithful",reveal=True),
                   Role("Hidden"),
-                  ####Common######
                   Role("Detective",aPass=False),
                   Role("Shielder"),
                   Role("Accursed",power=lambda :3),
@@ -365,7 +334,6 @@ def start(w):
                   Role("Catapult",power=lambda :5),
                   Role("Finisher",power=finishPower),
                   Role("Freespoken",reveal=True,power=lambda :2),
-                  ####Uncommon####
                   Role("Glass Cannon",reveal=True,power=lambda :3,health=5),
                   Role("Shifter",aPass=False),
                   Role("Deadshot",reveal=True,power=shotPower)]
@@ -380,9 +348,9 @@ def update(w):
         w.phase="Starting"
         string="!"
         for p in w.players:
+            string=string+p.name+"!"+p.role.name+"!"
             if p.role.name=="Survivor":
                 p.extraTurns=2
-            string=string+p.name+"!"+p.role.name+"!"
         for con in w.connections:
             con.c.send(string)
 
