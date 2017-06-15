@@ -47,8 +47,9 @@ def drawWidthBox(x,y,width,size=30):
         for word in words:
                 temp=st+word+" "
                 if len(temp)>width+1:
-                        drawString(st,x,y+yAdd,size,font="Anonymous Pro")
-                        yAdd+=size
+                        if len(st)>0:
+                                drawString(st,x,y+yAdd,size,font="Anonymous Pro")
+                                yAdd+=size
                         st=word+" "
                 else:
                         st=temp

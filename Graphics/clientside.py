@@ -11,7 +11,7 @@ makeGraphicsWindow(1200,600)
 ##########################  To Do  ################################
 ###################################################################
 
-# (1-5) Quitting Midgame, Instructions, "You Have Been Kicked", Better Scrolling, Leech Class
+# (1-5) Quitting Midgame, "You Have Been Kicked", Better Scrolling, Leech Class, Teammate Class
 
 ########### Urgent
 
@@ -19,11 +19,11 @@ makeGraphicsWindow(1200,600)
 
 # # # Quitting midgame
 
-# # # Instructions
-
 ########### Priority 2
 
 # # # Better scrolling
+
+# # # Unrequest stalemate
 
 # # # "You have been kicked"
 
@@ -568,9 +568,10 @@ def draw(w):
                     string=""
                     for word in words:
                         temp=string+word+" "
-                        if len(temp)>45:
-                            drawString(string,805,5+add,size=15,font="Anonymous Pro")
-                            add+=16
+                        if len(temp)>47:
+                            if len(string)>0:
+                                drawString(string,805,5+add,size=15,font="Anonymous Pro")
+                                add+=16
                             string=word+" "
                         else:
                             string=temp
