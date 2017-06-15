@@ -184,6 +184,15 @@ def mousePress(w,x,y,b):
             if inbox(460,ypos+5,x,y,30,30):
                 kick(p)
             ypos+=45
+    elif b=="left" and w.phase=="End":
+        if inbox(10,150,x,y,120,40):
+            for con in w.connections:
+                con.c.send("*newgame")
+            w.phase="Roles"
+            w.activeplayers=w.numplayers
+            w.roleschosen=0
+            w.round=0
+            w.gameStarted=False
 
 def unPass():
     getWorld().passes-=1
@@ -334,7 +343,6 @@ def start(w):
     w.startConnect = False
     w.connection = None
     w.connections = []
-    w.noMoreCalls = False
     w.gameStarted = False
     
     w.players = []
@@ -396,6 +404,10 @@ def draw(w):
     elif w.gameStarted:
         drawString("Phase: "+w.phase,10,85,15,font="Tahoma")
         drawString("Round: "+str(w.round),10,60,15,font="Tahoma")
+        if w.phase=="End":
+            fillRectangle(10,150,120,40,color="red")
+            drawRectangle(10,150,120,40,thickness=2)
+            drawString("New Game",15,150,color="white",font="Tahoma")
     ypos=10
     for p in w.players:
         display=None

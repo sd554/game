@@ -11,6 +11,8 @@ makeGraphicsWindow(1200,600)
 ##########################  To Do  ################################
 ###################################################################
 
+# (1-5) Multiline, Stalemate, Quitting Midgame, Instructions, "You Have Been Kicked"
+
 ########### Urgent
 
 ########### Priority 1
@@ -19,19 +21,17 @@ makeGraphicsWindow(1200,600)
 
 # # # Program Stalemate
 
-# # # New game btn
-
 ########### Priority 2
 
 # # # "You have been kicked"
-
-# # # GitHub
 
 # # # Quitting halfway through
 
 # # # implement drawUniform()
 
-# # # Instructions, Class List
+# # # Instructions
+
+# # # Improve class descriptions
 
 # # # Test utf8
 
@@ -54,7 +54,7 @@ makeGraphicsWindow(1200,600)
 ###################################################################
 
 class Role:
-    def __init__(self,name,health=10,power=lambda :1,reveal=False,chat=True,alive=True,aPass=True,analysis=lambda :0):
+    def __init__(self,name,health=10,power=lambda :1,reveal=False,chat=True,alive=True,aPass=True,analysis=lambda :0,desc=""):
         self.name=name
         self.health=health
         self.power=power
@@ -63,6 +63,7 @@ class Role:
         self.alive=alive
         self.aPass=aPass
         self.analysis=analysis
+        self.desc=desc
     def getPower(self):
         return self.power()
     def analyze(self):
@@ -129,6 +130,23 @@ def new_message(connection, message):
                 newMessage("Your actual health is "+str(w.player.health))
                 w.phase="Damage"
                 w.passed=False
+        elif message=="*newgame":
+            w.waiting = True
+            w.chosenPlayer = None
+            w.stalemates = 0
+            w.setshow = False
+            w.player = None
+            w.role = None
+            w.roles = []
+            w.players = []
+            w.started = False
+            w.passed = False
+            w.round = 0
+            w.phase = "Roles"
+            w.view = "Game"
+            w.messages = []
+            w.offset=0
+            w.offset_2=0
         elif message=="*end":
             w.phase="End"
             winner = False
@@ -244,13 +262,28 @@ def connect():
 ###################################################################
 
 def mousePress(w,x,y,b):
-    if w.started and inbox(1180,580,x,y,20,20):
+    ################### Settings  ####################
+    if b=="left" and w.started and inbox(1180,580,x,y,20,20):
         if w.setshow:
             w.setshow=False
         else:
             w.setshow=True
-            
-    if w.view=="Game":
+    if b=="left" and w.started and w.setshow:
+        add=0
+        for s in w.settings.keys():            
+            if inbox(998,563+add,x,y,202,18):
+                w.view=w.settings[s]
+                w.setshow=False
+                if s=="Stalemate Request":
+                    newMessage("This feature has not yet been implemented.")
+            add-=18
+    if w.view=="Classes":
+        if b=="left" and w.started:
+            if inbox(400,585,x,y,40,10):
+                w.offset_2+=250
+            elif inbox(760,585,x,y,40,10):
+                w.offset_2-=250
+    elif w.view=="Game":
         ################# Up/Down Arrows  ###################
         if b=="left" and w.started and len(w.messages)>33:
             if inbox(880,585,x,y,40,10):
@@ -434,31 +467,32 @@ def start(w):
     
     w.settings = {"Stalemate Request":"Game",
                   "Classes":"Classes",
-                  "Instructions":"Instructions"}
+                  "Instructions":"Instructions",
+                  "Game":"Game"}
     w.setshow = False
     
     w.name = "Player"
     w.player = None
     w.role = None
     w.roles = []
-    w.allroles = [Role("Faithful",reveal=True),
-                  Role("Hidden"),
-                  Role("Detective",aPass=False),
-                  Role("Shielder"),
-                  Role("Accursed",power=lambda :3),
-                  Role("Priest",reveal=True),
-                  Role("Shifter",aPass=False),
-                  Role("Inaccuracy",power=inaccuratePower),
-                  Role("Glass Cannon",reveal=True,power=lambda :3,health=5),
-                  Role("Journalist"),
-                  Role("Deadshot",reveal=True,power=shotPower),
-                  Role("Leech"),
-                  Role("Healer"),
-                  Role("Survivor"),
-                  Role("Lag",power=lambda :2),
-                  Role("Catapult",power=lambda :5),
-                  Role("Finisher",power=finishPower),
-                  Role("Freespoken",reveal=True,power=lambda :2)]
+    w.allroles = [Role("Faithful",reveal=True,desc="OPEN."),
+                  Role("Hidden",desc="CLOSED."),
+                  Role("Detective",aPass=False,desc="CLOSED; during analysis, you may determine who any one player attacked."),
+                  Role("Shielder",desc="CLOSED; can take a maximum of 2 damage each turn"),
+                  Role("Accursed",power=lambda :3,desc="CLOSED; 3 power; takes 1 additional damage each turn."),
+                  Role("Priest",reveal=True,desc="OPEN; life total is hidden to opponents."),
+                  Role("Shifter",aPass=False,desc="CLOSED; you may shift your apparent damage each turn plus or minus 1."),
+                  Role("Inaccuracy",power=inaccuratePower,desc="CLOSED; -2 to 4 power"),
+                  Role("Glass Cannon",reveal=True,power=lambda :3,health=5,desc="OPEN; 3 power; 5 health."),
+                  Role("Journalist",desc="CLOSED; you know everyone's class."),
+                  Role("Deadshot",reveal=True,power=shotPower,desc="OPEN; 1 to 4 power; has to attack the same player until the player is dead."),
+ #                 Role("Leech"),
+                  Role("Healer",desc="CLOSED; any damage you deal to yourself gains you life instead."),
+                  Role("Survivor",desc="CLOSED; survives two turns after going to 2 life"),
+                  Role("Lag",power=lambda :2,desc="CLOSED; 2 power; each attack's damage is taken the turn after declared."),
+                  Role("Catapult",power=lambda :5,desc="CLOSED; 5 power; attacks once every three turns."),
+                  Role("Finisher",power=finishPower,desc="CLOSED; 1 power rounds 1-7, 3 power rounds 8+"),
+                  Role("Freespoken",reveal=True,power=lambda :2,desc="OPEN; 2 power; who you attack is posted in chat.")]
     w.players = []
     w.started = False
     w.passed = False
@@ -467,6 +501,7 @@ def start(w):
     w.view = "Game"
     w.messages = []
     w.offset=0
+    w.offset_2=0
 
 ###################################################################
 ##########################  Update  ###############################
@@ -526,8 +561,8 @@ def draw(w):
                     drawString(" > "+message,800,5+add,size=15,font="Times")
                     add+=16
             if len(w.messages)>33:
-                fillRectangle(800,580,1200,20,color="white")
-                drawRectangle(800,580,1200,20,thickness=2)
+                fillRectangle(800,580,400,20,color="white")
+                drawRectangle(800,580,400,20,thickness=2)
                 fillPolygon([(880,595),(920,595),(900,585)],color="red")
                 drawPolygon([(880,595),(920,595),(900,585)],thickness=2)
                 fillPolygon([(1080,585),(1120,585),(1100,595)],color="red")
@@ -636,7 +671,15 @@ def draw(w):
     elif w.view=="Instructions":
         pass
     elif w.view=="Classes":
-        pass
+        add=w.offset_2
+        for r in w.allroles:
+            drawString(r.name+" - "+r.desc,5,5+add,size=25,font="Times")
+            add+=35
+        fillRectangle(0,580,1200,20,color="white")
+        fillPolygon([(400,595),(440,595),(420,585)],color="red")
+        drawPolygon([(400,595),(440,595),(420,585)],thickness=2)
+        fillPolygon([(760,585),(800,585),(780,595)],color="red")
+        drawPolygon([(760,585),(800,585),(780,595)],thickness=2)
     if w.started:
         fillRectangle(1180,580,20,20,color="gray")
         drawRectangle(1180,580,20,20,thickness=2)
@@ -644,7 +687,7 @@ def draw(w):
             add=0
             for opt in w.settings.keys():
                 fillRectangle(998,563+add,202,18,color="white")
-                drawString(opt,1000,565+add,size=15,font="Times")
+                drawString(opt,1000,564+add,size=15,font="Tahoma")
                 drawRectangle(998,563+add,202,18)
                 add-=18
 
