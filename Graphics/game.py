@@ -185,7 +185,7 @@ def mousePress(w,x,y,b):
                 kick(p)
             ypos+=45
     elif b=="left" and w.phase=="End":
-        if inbox(10,150,x,y,120,40):
+        if inbox(10,150,x,y,160,40):
             for con in w.connections:
                 con.c.send("*newgame")
             w.phase="Roles"
@@ -380,7 +380,7 @@ def update(w):
         w.phase="Starting"
         string="!"
         for p in w.players:
-            if p.role=="Survivor":
+            if p.role.name=="Survivor":
                 p.extraTurns=2
             string=string+p.name+"!"+p.role.name+"!"
         for con in w.connections:
@@ -405,8 +405,8 @@ def draw(w):
         drawString("Phase: "+w.phase,10,85,15,font="Tahoma")
         drawString("Round: "+str(w.round),10,60,15,font="Tahoma")
         if w.phase=="End":
-            fillRectangle(10,150,120,40,color="red")
-            drawRectangle(10,150,120,40,thickness=2)
+            fillRectangle(10,150,160,40,color="red")
+            drawRectangle(10,150,160,40,thickness=2)
             drawString("New Game",15,150,color="white",font="Tahoma")
     ypos=10
     for p in w.players:
@@ -428,4 +428,3 @@ def draw(w):
         ypos+=45
         
 runGraphics(start,update,draw)
-

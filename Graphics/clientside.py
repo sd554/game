@@ -23,6 +23,8 @@ makeGraphicsWindow(1200,600)
 
 ########### Priority 2
 
+# # # Naming before connected
+
 # # # "You have been kicked"
 
 # # # Quitting halfway through
@@ -40,6 +42,8 @@ makeGraphicsWindow(1200,600)
 # # # Assassin Class, Leech Class, Life Swap Class, Teammate Class
 
 ########### Future
+
+# # # Change graphics library
 
 # # # Icons for MAIN, USER, ETC
 
@@ -127,7 +131,6 @@ def new_message(connection, message):
         elif message=="*damage":
             if not w.phase=="Death":
                 newMessage("It is now Damage phase.")
-                newMessage("Your actual health is "+str(w.player.health))
                 w.phase="Damage"
                 w.passed=False
         elif message=="*newgame":
@@ -156,6 +159,8 @@ def new_message(connection, message):
                         newMessage("You have won the game!")
                     else:
                         newMessage(p.name+" ("+p.role.name+") has won the game!")
+                        if p.role.name=="Priest":
+                            newMessage(p.name+" had "+p.health+" life left.")
                     p.win=True
                     winner=True
                     break
@@ -658,7 +663,9 @@ def draw(w):
                         ypos=450
                     if p.alive:
                         spot=600*num/de
-                        if p.role.name=="Priest":
+                        if p.role.name=="Priest" and p.name==w.name:
+                            drawString(p.health,5+spot,ypos,40,color=c,font="Times")
+                        elif p.role.name=="Priest":
                             drawString("?",5+spot,ypos,40,color=c,font="Times")
                         else:
                             drawString(p.apparent,5+spot,ypos,40,color=c,font="Times")
