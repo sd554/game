@@ -221,15 +221,22 @@ def passPhase():
                     p.health-=p.incoming
                     p.apparent-=p.apparentIncoming
                     p.pastI=p.apparentIncoming
-                string=string+">"+str(p.incoming)+">"+str(p.apparentIncoming)
-                p.incoming=0
-                p.apparentIncoming=0
                 if p.health<=0 and p.alive:
                     if p.extraTurns>0:
                         p.extraTurns-=1
                     else:
+                        for pl in w.players:
+                            if pl.target==p.name and pl.role.name=="Assassin":
+                                pl.con.send("#assassinKill(\""+p.name+"\")")
+                                pl.apparent+=3
+                                pl.health+=3
+                                pl.apparentIncoming-=3
+                                pl.incoming-=3
                         p.alive=False
                         w.activeplayers-=1
+                string=string+">"+str(p.incoming)+">"+str(p.apparentIncoming)
+                p.incoming=0
+                p.apparentIncoming=0
             if w.activeplayers>=2:
                 for con in w.connections:
                     con.c.send(string)
@@ -336,7 +343,9 @@ def start(w):
                   Role("Freespoken",reveal=True,power=lambda :2),
                   Role("Glass Cannon",reveal=True,power=lambda :3,health=5),
                   Role("Shifter",aPass=False),
-                  Role("Deadshot",reveal=True,power=shotPower)]
+                  Role("Deadshot",reveal=True,power=shotPower),
+                  Role("Tower",reveal=True,health=18),
+                  Role("Assassin")]
     network.listen(new_client_function)
 
 ###################################################################

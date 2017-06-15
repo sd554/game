@@ -15,3 +15,5 @@ Lag
 Catapult
 Finisher
 Freespoken
+Tower
+Assassin

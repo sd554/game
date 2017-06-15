@@ -11,7 +11,7 @@ makeGraphicsWindow(1200,600)
 ##########################  To Do  ################################
 ###################################################################
 
-# (1-5) Quitting Midgame, Instructions, "You Have Been Kicked", Assassin Class, Better Scrolling
+# (1-5) Quitting Midgame, Instructions, "You Have Been Kicked", Better Scrolling, Leech Class
 
 ########### Urgent
 
@@ -33,17 +33,17 @@ makeGraphicsWindow(1200,600)
 
 # # # Passing as Leech/Deadshot
 
-# # # Assassin Class, Leech Class, Life Swap Class, Teammate Class
-
-########### Future
+# # # Leech Class, Life Swap Class, Teammate Class
 
 # # # Change graphics library
+
+########### Future
 
 # # # Icons for MAIN, USER, ETC
 
 # # # Class Reward
 
-# # # Two Team, Pair Modes
+# # # Pair Mode
 
 # # # Politician Class, Unforgiving Class, Factory Class, Identity Thief Class, Haunter Class
 
@@ -447,6 +447,11 @@ def finishPower():
     else:
         return 1
 
+def assassinKill(player):
+    newMessage("You killed "+player+", and gain 3 life.")
+    getWorld().player.health+=3
+    getWorld().player.apparent+=3
+
 ###################################################################
 ##########################  Start  ################################
 ###################################################################
@@ -489,7 +494,9 @@ def start(w):
                   Role("Lag",power=lambda :2,desc="CLOSED; 2 power; each attack's damage is taken the turn after declared."),
                   Role("Catapult",power=lambda :5,desc="CLOSED; 5 power; attacks once every three turns."),
                   Role("Finisher",power=finishPower,desc="CLOSED; 1 power rounds 1-7, 3 power rounds 8+"),
-                  Role("Freespoken",reveal=True,power=lambda :2,desc="OPEN; 2 power; who you attack is posted in chat.")]
+                  Role("Freespoken",reveal=True,power=lambda :2,desc="OPEN; 2 power; who you attack is posted in chat."),
+                  Role("Tower",reveal=True,health=18,desc="OPEN; 18 health."),
+                  Role("Assassin",desc="CLOSED; if you do the final damage to a player, you gain 3 life.")]
     w.players = []
     w.started = False
     w.passed = False
@@ -682,7 +689,17 @@ def draw(w):
                     if w.players.index(p)%3==2:
                         num+=1
     elif w.view=="Instructions":
-        pass
+        drawString("In this game, your goal is to be the last player left with a positive life total.",5,5,20,font="Times")
+        drawString("There are four phases in this game:",5,30,20,font="Times")
+        drawString(" 1) Discussion Phase - Talk strategy privately with other players, or message them all at once.",5,55,20,font="Times")
+        drawString(" 2) Target Phase - Pick a player. This is the player who you are attacking this round.",5,80,20,font="Times")
+        drawString(" 3) Analysis Phase - Certain classes may look at the damage that is dealt before it becomes visible during Damage Phase.",5,105,20,font="Times")
+        drawString(" 4) Damage Phase - Everyone now can see how much damage everybody else took.",5,130,20,font="Times")
+        drawString("Each player has a class that will benefit them throughout the game. Classes have the following properties:",5,155,20,font="Times")
+        drawString(" - Health: This is the starting health the player will have.",5,180,20,font="Times")
+        drawString(" - Power: How much damage they deal during Target Phase.",5,205,20,font="Times")
+        drawString(" - Visibility: Most classes are invisible, or closed. This means other players do not know what class you are.",5,230,20,font="Times")
+        drawString(" - Other: Each class may also have other capabilities.",5,255,20,font="Times")
     elif w.view=="Classes":
         add=w.offset_2
         for r in w.allroles:
