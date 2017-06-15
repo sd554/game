@@ -11,7 +11,7 @@ makeGraphicsWindow(1200,600)
 ##########################  To Do  ################################
 ###################################################################
 
-# (1-5) Quitting Midgame, "You Have Been Kicked", Better Scrolling, Leech Class, Teammate Class
+# (1-5) Quitting Midgame, Stalemate System, Better Scrolling, Leech Class, Teammate Class
 
 ########### Urgent
 
@@ -19,7 +19,11 @@ makeGraphicsWindow(1200,600)
 
 # # # Quitting midgame
 
+# # # Change Stalemate system
+
 ########### Priority 2
+
+# # # IDs as Usernames
 
 # # # Better scrolling
 
@@ -128,9 +132,10 @@ def new_message(connection, message):
                 w.phase="Damage"
                 w.passed=False
         elif message=="*newgame":
+            w.phase = "Roles"
             w.waiting = True
             w.chosenPlayer = None
-            w.stalemates = 0
+            w.requested = False
             w.setshow = False
             w.player = None
             w.role = None
@@ -139,11 +144,11 @@ def new_message(connection, message):
             w.started = False
             w.passed = False
             w.round = 0
-            w.phase = "Roles"
             w.view = "Game"
             w.messages = []
-            w.offset=0
-            w.offset_2=0
+            w.offset = 0
+            w.lines = 0
+            w.offset_2 = 0
         elif message=="*stalemate":
             w.phase="End"
             newMessage("The game ends in stalemate.")
@@ -197,6 +202,8 @@ def new_message(connection, message):
                         if w.players[x/2].name==w.name:
                             w.phase="Death"
                             newMessage("You have lost the game!")
+                            if w.requested:
+                                w.connection.send("#getWorld().stalemates-=1")
                         else:
                             newMessage(w.players[x/2].name+" ("+w.players[x/2].role.name+") has lost the game.")
                             if w.players[x/2]==w.player.bond:
@@ -278,7 +285,6 @@ def mousePress(w,x,y,b):
                 w.setshow=False
                 if s=="Stalemate Request":
                     if not w.requested:
-                        newMessage("You requested a stalemate.")
                         w.requested=True
                         w.connection.send("#stalemate(\""+w.name+"\")")
                     else:
@@ -524,8 +530,6 @@ def drawUniform(string,x,y,s,c):
     drawString(string,x,y,size=s,color=c,font="Times")
 
 def draw(w):
-    if w.kicked:
-        drawString("You have been kicked. Reload this page to try again.",10,10)
     #################### Connecting #####################
     if not w.connected:
         drawString("Connecting...",320,200,font="Times")
@@ -556,7 +560,8 @@ def draw(w):
             drawLine(600,0,600,600,thickness=2)
             drawLine(800,0,800,600,thickness=2)
             drawString(w.name,610,20,18,font="Times")
-            drawString(w.role.name,610,45,15,font="Times")
+            if not w.role==None:
+                drawString(w.role.name,610,45,15,font="Times")
             drawString("Phase: "+w.phase,610,140,20,font="Times")
             drawString("Round: "+str(w.round),610,160,20,font="Times")
             #################### Textbar ######################

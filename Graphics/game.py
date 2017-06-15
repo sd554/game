@@ -158,6 +158,11 @@ def mousePress(w,x,y,b):
             w.roleschosen=0
             w.round=0
             w.gameStarted=False
+            w.stalemates=0
+            for p in w.players:
+                p.role=None
+                p.health=10
+                p.apparent=10
 
 def unPass():
     getWorld().passes-=1
@@ -225,15 +230,17 @@ def passPhase():
                     if p.extraTurns>0:
                         p.extraTurns-=1
                     else:
-                        for pl in w.players:
-                            if pl.target==p.name and pl.role.name=="Assassin":
-                                pl.con.send("#assassinKill(\""+p.name+"\")")
-                                pl.apparent+=3
-                                pl.health+=3
-                                pl.apparentIncoming-=3
-                                pl.incoming-=3
                         p.alive=False
                         w.activeplayers-=1
+            for p in w.players:
+                for pl in w.players:
+                    if p.alive and p.target==pl.name and not pl.alive and p.role.name=="Assassin":
+                        p.health+=3
+                        p.apparent+=3
+                        p.incoming-=3
+                        p.apparentIncoming-=3
+                        p.con.send("#assassinKill(\""+pl.name+"\")")
+            for p in w.players:
                 string=string+">"+str(p.incoming)+">"+str(p.apparentIncoming)
                 p.incoming=0
                 p.apparentIncoming=0
@@ -315,10 +322,7 @@ def start(w):
     w.roleschosen = 0
     w.passes = 0
     w.connectedPlayers = []
-    
-    w.numCheck = True
-    w.startConnect = False
-    w.connection = None
+
     w.connections = []
     w.gameStarted = False
     w.stalemates = 0
