@@ -11,7 +11,7 @@ makeGraphicsWindow(1200,600)
 ##########################  To Do  ################################
 ###################################################################
 
-# (1-5) Quitting Midgame, Stalemate System, Better Scrolling, Leech Class, Growth Class
+# (1-5) Quitting Midgame, Better Scrolling, Leech Class, Username IDs, Silent Class
 
 ########### Urgent
 
@@ -19,19 +19,13 @@ makeGraphicsWindow(1200,600)
 
 # # # Quitting midgame
 
-# # # Change Stalemate system
-
-########### Priority 2
-
 # # # IDs as Usernames
-
-# # # Gitignore
 
 # # # Better scrolling
 
-# # # Serverside record data
+########### Priority 2
 
-# # # Unrequest stalemate
+# # # Serverside record data
 
 # # # Test utf8
 
@@ -92,6 +86,7 @@ class Player:
         self.extraTurns=0
         self.nextHit=0
         self.nextTarget=None
+        self.currentPower=1
 
 ###################################################################
 ########################  Functions  ##############################
@@ -129,6 +124,7 @@ def new_message(connection, message):
                 w.phase="Discussion"
                 w.passed=False
                 w.round+=1
+                w.requested=False
         elif message=="*damage":
             if not w.phase=="Death":
                 newMessage("It is now Damage phase.")
@@ -286,12 +282,13 @@ def mousePress(w,x,y,b):
             if inbox(998,563+add,x,y,202,18):
                 w.view=w.settings[s]
                 w.setshow=False
-                if s=="Stalemate Request" and w.player.alive:
+                if s=="Stalemate Request" and w.player.alive and not w.phase=="Roles":
                     if not w.requested:
                         w.requested=True
                         w.connection.send("#stalemate(\""+w.name+"\")")
                     else:
-                        newMessage("You already requested a stalemate.")
+                        w.requested=False
+                        w.connection.send("#unStalemate(\""+w.name+"\")")
             add-=18
     ################# Up/Down Arrows  ###################
     if w.view=="Classes":
@@ -323,7 +320,7 @@ def mousePress(w,x,y,b):
                     ypos=70
                 ypos+=30
         ###################### Passing  ######################
-        if (w.phase=="Discussion" or w.phase=="Starting" or w.phase=="Damage" or (w.phase=="Analysis" and w.role.aPass)) and not w.passed:
+        if b=="left" and (w.phase=="Discussion" or w.phase=="Starting" or w.phase=="Damage" or (w.phase=="Target" and w.role.tPass) or (w.phase=="Analysis" and w.role.aPass)) and not w.passed:
             if inbox(650,85,x,y,90,40):
                 if w.chosenPlayer==None:
                     w.passed=True
@@ -331,7 +328,7 @@ def mousePress(w,x,y,b):
                 else:
                     w.chosenPlayer=None
                     inputmod.box["string"]=""
-        elif w.phase=="Discussion" and w.passed:
+        elif b=="left" and w.phase=="Discussion" and w.passed:
             if inbox(650,85,x,y,90,40):
                 w.passed=False
                 w.connection.send("#unPass()")
@@ -375,6 +372,8 @@ def mousePress(w,x,y,b):
                             w.player.nextTarget=p.name
                             w.player.target=trg
                             damage=hit
+                        elif w.role.name=="Growth":
+                            w.player.currentPower=0
                         w.player.tempPower=damage
                         if not w.player.target==None:
                             newMessage("You attacked "+w.player.target+" for "+str(damage)+" damage.")
@@ -460,6 +459,13 @@ def finishPower():
     else:
         return 1
 
+def grow():
+    getWorld().player.currentPower+=1
+    newMessage("You're new power is "+str(getWorld().player.currentPower)+".")
+
+def growPower():
+    return getWorld().player.currentPower
+
 def assassinKill(player):
     newMessage("You killed "+player+", and gain 3 life.")
     getWorld().player.health+=3
@@ -509,7 +515,8 @@ def start(w):
                   Role("Finisher",power=finishPower,desc="CLOSED; 1 power rounds 1-7, 3 power rounds 8+"),
                   Role("Freespoken",reveal=True,power=lambda :2,desc="OPEN; 2 power; who you attack is posted in chat."),
                   Role("Tower",reveal=True,health=18,desc="OPEN; 18 health."),
-                  Role("Assassin",desc="CLOSED; if you do the final damage to a player, you gain 3 life.")]
+                  Role("Assassin",desc="CLOSED; if you do the final damage to a player, you gain 3 life."),
+                  Role("Growth",tPass=True,analysis=grow,power=growPower,desc="CLOSED; you may skip a Target Phase; if you do, your power is +1 for next turn.")]
     w.players = []
     w.started = False
     w.passed = False
@@ -597,7 +604,7 @@ def draw(w):
                 fillPolygon([(1080,585),(1120,585),(1100,595)],color="red")
                 drawPolygon([(1080,585),(1120,585),(1100,595)],thickness=2)
             ################## Pass Button #####################
-            if (w.phase=="Discussion" or w.phase=="Starting" or w.phase=="Damage" or (w.phase=="Analysis" and w.role.aPass)) and not w.passed:
+            if (w.phase=="Discussion" or w.phase=="Starting" or w.phase=="Damage" or (w.phase=="Analysis" and w.role.aPass) or (w.phase=="Target" and w.role.tPass)) and not w.passed:
                 fillRectangle(650,85,90,40,color="red")
                 drawRectangle(650,85,90,40,thickness=2)
                 if w.chosenPlayer==None:
@@ -609,7 +616,7 @@ def draw(w):
                 drawRectangle(650,85,90,40,thickness=2)
                 drawString("Unpass",655,87,size=15,color="white",font="Times")
             ################## Target Phase ####################
-            elif w.phase=="Target" and not w.passed:
+            if w.phase=="Target" and not w.passed:
                 add=0
                 drawString("Pick a Target",610,200,15,font="Times")
                 for p in w.players:
@@ -731,7 +738,10 @@ def draw(w):
             add=0
             for opt in w.settings.keys():
                 fillRectangle(998,563+add,202,18,color="white")
-                drawString(opt,1000,564+add,size=15,font="Tahoma")
+                if opt=="Stalemate Request" and w.requested:
+                    drawString("Unrequest Stalemate",1000,564+add,size=15,font="Tahoma")
+                else:
+                    drawString(opt,1000,564+add,size=15,font="Tahoma")
                 drawRectangle(998,563+add,202,18)
                 add-=18
 

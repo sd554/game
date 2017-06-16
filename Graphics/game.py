@@ -36,7 +36,7 @@ class Player:
         self.nextTarget=None
 
 class Role:
-    def __init__(self,name,health=10,power=lambda :1,reveal=False,chat=True,alive=True,aPass=True,analysis=lambda :0):
+    def __init__(self,name,health=10,power=lambda :1,reveal=False,chat=True,alive=True,aPass=True,tPass=False,analysis=lambda :0):
         self.name=name
         self.health=health
         self.power=power
@@ -44,6 +44,7 @@ class Role:
         self.chat=chat
         self.alive=alive
         self.aPass=aPass
+        self.tPass=tPass
         self.analysis=analysis
     def getPower(self):
         return self.power()
@@ -255,6 +256,10 @@ def passPhase():
                 w.phase="End"
             w.passes=0
         elif w.phase=="Damage" or w.phase=="Starting":
+            if w.stalemates>0:
+                for con in w.connections:
+                    con.c.send("#newMessage('The stalemate counter has been reset')")
+                w.stalemates=0
             w.phase="Discussion"
             for con in w.connections:
                 con.c.send("*discussion")
@@ -280,6 +285,11 @@ def stalemate(name):
             con.c.send("*stalemate")
             getWorld().phase="End"
 
+def unStalemate(name):
+    getWorld().stalemates-=1
+    for con in getWorld().connections:
+        con.c.send("#newMessage(\""+name+" unrequested a stalemate.\")")
+
 onMousePress(mousePress)
 onAnyKeyPress(keyPress)
 
@@ -294,6 +304,12 @@ def shotPower():
     pass
 
 def finishPower():
+    pass
+
+def grow():
+    pass
+
+def growPower():
     pass
 
 def changeApparent(name,value):
@@ -349,7 +365,8 @@ def start(w):
                   Role("Shifter",aPass=False),
                   Role("Deadshot",reveal=True,power=shotPower),
                   Role("Tower",reveal=True,health=18),
-                  Role("Assassin")]
+                  Role("Assassin"),
+                  Role("Growth",tPass=True,analysis=grow,power=growPower)]
     network.listen(new_client_function)
 
 ###################################################################
