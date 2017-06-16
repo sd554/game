@@ -11,7 +11,7 @@ makeGraphicsWindow(1200,600)
 ##########################  To Do  ################################
 ###################################################################
 
-# (1-5) Quitting Midgame, Stalemate System, Better Scrolling, Leech Class, Teammate Class
+# (1-5) Quitting Midgame, Stalemate System, Better Scrolling, Leech Class, Growth Class
 
 ########### Urgent
 
@@ -25,19 +25,21 @@ makeGraphicsWindow(1200,600)
 
 # # # IDs as Usernames
 
+# # # Gitignore
+
 # # # Better scrolling
+
+# # # Serverside record data
 
 # # # Unrequest stalemate
 
-# # # "You have been kicked"
-
-# # # implement drawUniform()
-
 # # # Test utf8
+
+# # # Reveal Survivor when at 0
 
 # # # Passing as Leech/Deadshot
 
-# # # Leech Class, Life Swap Class, Teammate Class
+# # # New Classes
 
 # # # Change graphics library
 
@@ -47,16 +49,16 @@ makeGraphicsWindow(1200,600)
 
 # # # Class Reward
 
-# # # Pair Mode
+# # # Pair Mode, Priest Mode
 
-# # # Politician Class, Unforgiving Class, Factory Class, Identity Thief Class, Haunter Class
+# # # New Classes
 
 ###################################################################
 #########################  Classes  ###############################
 ###################################################################
 
 class Role:
-    def __init__(self,name,health=10,power=lambda :1,reveal=False,chat=True,alive=True,aPass=True,analysis=lambda :0,desc=""):
+    def __init__(self,name,health=10,power=lambda :1,reveal=False,chat=True,alive=True,aPass=True,analysis=lambda :0,tPass=False,desc=""):
         self.name=name
         self.health=health
         self.power=power
@@ -64,6 +66,7 @@ class Role:
         self.chat=chat
         self.alive=alive
         self.aPass=aPass
+        self.tPass=tPass
         self.analysis=analysis
         self.desc=desc
     def getPower(self):
@@ -283,7 +286,7 @@ def mousePress(w,x,y,b):
             if inbox(998,563+add,x,y,202,18):
                 w.view=w.settings[s]
                 w.setshow=False
-                if s=="Stalemate Request":
+                if s=="Stalemate Request" and w.player.alive:
                     if not w.requested:
                         w.requested=True
                         w.connection.send("#stalemate(\""+w.name+"\")")
@@ -319,15 +322,19 @@ def mousePress(w,x,y,b):
                     xpos+=200
                     ypos=70
                 ypos+=30
-        ##################### Passing  ######################
+        ###################### Passing  ######################
         if (w.phase=="Discussion" or w.phase=="Starting" or w.phase=="Damage" or (w.phase=="Analysis" and w.role.aPass)) and not w.passed:
-            if inbox(650,500,x,y,90,40):
+            if inbox(650,85,x,y,90,40):
                 if w.chosenPlayer==None:
                     w.passed=True
                     w.connection.send("#passPhase()")
                 else:
                     w.chosenPlayer=None
                     inputmod.box["string"]=""
+        elif w.phase=="Discussion" and w.passed:
+            if inbox(650,85,x,y,90,40):
+                w.passed=False
+                w.connection.send("#unPass()")
         ###################### Chat #1 #######################
         if b=="left" and w.phase=="Discussion" and not w.passed and w.role.chat and w.chosenPlayer==None:
             add=0
@@ -526,9 +533,6 @@ def update(w):
 ###########################  Draw  ################################
 ###################################################################
 
-def drawUniform(string,x,y,s,c):
-    drawString(string,x,y,size=s,color=c,font="Times")
-
 def draw(w):
     #################### Connecting #####################
     if not w.connected:
@@ -594,12 +598,16 @@ def draw(w):
                 drawPolygon([(1080,585),(1120,585),(1100,595)],thickness=2)
             ################## Pass Button #####################
             if (w.phase=="Discussion" or w.phase=="Starting" or w.phase=="Damage" or (w.phase=="Analysis" and w.role.aPass)) and not w.passed:
-                fillRectangle(650,500,90,40,color="red")
-                drawRectangle(650,500,90,40,thickness=2)
+                fillRectangle(650,85,90,40,color="red")
+                drawRectangle(650,85,90,40,thickness=2)
                 if w.chosenPlayer==None:
-                    drawString("Pass",655,502,size=15,color="white",font="Times")
+                    drawString("Pass",655,87,size=15,color="white",font="Times")
                 else:
-                    drawString("Cancel",655,502,size=15,color="white",font="Times")
+                    drawString("Cancel",655,87,size=15,color="white",font="Times")
+            elif w.phase=="Discussion" and w.passed:
+                fillRectangle(650,85,90,40,color="red")
+                drawRectangle(650,85,90,40,thickness=2)
+                drawString("Unpass",655,87,size=15,color="white",font="Times")
             ################## Target Phase ####################
             elif w.phase=="Target" and not w.passed:
                 add=0

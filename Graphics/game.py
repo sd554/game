@@ -221,7 +221,7 @@ def passPhase():
                             break
                 if p.role.name=="Priest":
                     p.health-=p.incoming
-                    p.pastI=0
+                    p.pastI=p.incoming
                 else:
                     p.health-=p.incoming
                     p.apparent-=p.apparentIncoming
