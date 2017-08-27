@@ -1,3 +1,3 @@
 #!/bin/bash
-cd Desktop/game/Graphics
+cd Desktop/game
 python clientside.py
